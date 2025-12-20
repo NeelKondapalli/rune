@@ -40,6 +40,14 @@ An ASCII video is just this pipeline applied **across time**.
 
 ## ✦ Usage (current)
 
+### Build
+
+```bash
+mkdir build 
+cd build
+cmake --build .
+```
+
 ### Convert image → ASCII frame
 
 ```bash
