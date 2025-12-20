@@ -1,2 +1,0 @@
-/usr/bin/ar qc librune.a CMakeFiles/rune.dir/src/converter.cpp.o CMakeFiles/rune.dir/src/json.cpp.o
-/usr/bin/ranlib librune.a
