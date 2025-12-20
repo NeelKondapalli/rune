@@ -1,0 +1,4 @@
+/Users/neelkondapalli/Documents/Projects/rune/build/CMakeFiles/rune.dir
+/Users/neelkondapalli/Documents/Projects/rune/build/CMakeFiles/rune_cli.dir
+/Users/neelkondapalli/Documents/Projects/rune/build/CMakeFiles/edit_cache.dir
+/Users/neelkondapalli/Documents/Projects/rune/build/CMakeFiles/rebuild_cache.dir

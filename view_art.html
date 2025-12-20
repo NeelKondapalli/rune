@@ -1,0 +1,110 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>rune ASCII viewer (color)</title>
+
+  <style>
+    body {
+      margin: 0;
+      background: #000;
+      color: #fff;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco,
+                   Consolas, "Liberation Mono", "Courier New", monospace;
+    }
+
+    header {
+      position: sticky;
+      top: 0;
+      background: #111;
+      border-bottom: 1px solid #333;
+      padding: 8px 12px;
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      color: #ccc;
+      z-index: 10;
+    }
+
+    pre {
+      margin: 12px;
+      font-size: 12px;
+      line-height: 1.1;     /* CRITICAL */
+      white-space: pre;
+    }
+
+    .cell {
+      display: inline;
+    }
+
+    input { color: #ccc; }
+  </style>
+</head>
+
+<body>
+  <header>
+    <label>
+      JSON file:
+      <input id="file" type="file" accept=".json" />
+    </label>
+    <span>pure ASCII + color (no canvas)</span>
+  </header>
+
+  <pre id="ascii"></pre>
+
+  <script>
+    const fileInput = document.getElementById("file");
+    const pre = document.getElementById("ascii");
+
+    function hslCss(h255, s255, l255) {
+      const h = (h255 * 360) / 255;
+      const s = (s255 * 100) / 255;
+      const l = (l255 * 100) / 255;
+      return `hsl(${h}, ${s}%, ${l}%)`;
+    }
+
+    function renderAscii(frame) {
+      const cols = frame.cols;
+      const cells = frame.cells;
+
+      let html = "";
+
+      for (let i = 0; i < cells.length; i++) {
+        const c = cells[i];
+
+        const color = hslCss(c.h, c.s, c.l);
+        const glyph = c.g === " " ? "&nbsp;" : c.g;
+
+        html += `<span class="cell" style="color:${color}">${glyph}</span>`;
+
+        if ((i + 1) % cols === 0) {
+          html += "\n";
+        }
+      }
+
+      pre.innerHTML = html;
+    }
+
+    async function loadText(text) {
+      try {
+        const frame = JSON.parse(text);
+        if (!frame || !frame.cols || !Array.isArray(frame.cells)) {
+          alert("Invalid frame JSON");
+          return;
+        }
+        renderAscii(frame);
+      } catch (e) {
+        alert("Failed to parse JSON: " + e.message);
+      }
+    }
+
+    fileInput.addEventListener("change", async (e) => {
+      const f = e.target.files?.[0];
+      if (!f) return;
+      loadText(await f.text());
+    });
+
+
+  </script>
+</body>
+</html>
