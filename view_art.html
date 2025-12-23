@@ -28,7 +28,7 @@
 
     pre {
       margin: 12px;
-      font-size: 12px;
+      font-size: 8px;
       line-height: 1.1;     /* CRITICAL */
       white-space: pre;
     }
@@ -53,58 +53,73 @@
   <pre id="ascii"></pre>
 
   <script>
-    const fileInput = document.getElementById("file");
     const pre = document.getElementById("ascii");
-
+  
+    let frames = [];
+    let spans = [];
+    let cols = 0;
+    let frameIndex = 0;
+    const fps = 12;
+    const frameTime = 1000 / fps;
+  
     function hslCss(h255, s255, l255) {
       const h = (h255 * 360) / 255;
       const s = (s255 * 100) / 255;
       const l = (l255 * 100) / 255;
       return `hsl(${h}, ${s}%, ${l}%)`;
     }
-
-    function renderAscii(frame) {
-      const cols = frame.cols;
+  
+    function buildGrid(frame) {
+      cols = frame.cols;
+      pre.innerHTML = "";
+      spans = [];
+  
+      for (let i = 0; i < frame.cells.length; i++) {
+        const span = document.createElement("span");
+        span.className = "cell";
+        span.textContent = " ";
+        pre.appendChild(span);
+        spans.push(span);
+  
+        if ((i + 1) % cols === 0) {
+          pre.appendChild(document.createTextNode("\n"));
+        }
+      }
+    }
+  
+    function renderFrame(frame) {
       const cells = frame.cells;
-
-      let html = "";
-
+  
       for (let i = 0; i < cells.length; i++) {
         const c = cells[i];
-
-        const color = hslCss(c.h, c.s, c.l);
-        const glyph = c.g === " " ? "&nbsp;" : c.g;
-
-        html += `<span class="cell" style="color:${color}">${glyph}</span>`;
-
-        if ((i + 1) % cols === 0) {
-          html += "\n";
-        }
-      }
-
-      pre.innerHTML = html;
-    }
-
-    async function loadText(text) {
-      try {
-        const frame = JSON.parse(text);
-        if (!frame || !frame.cols || !Array.isArray(frame.cells)) {
-          alert("Invalid frame JSON");
-          return;
-        }
-        renderAscii(frame);
-      } catch (e) {
-        alert("Failed to parse JSON: " + e.message);
+        const s = spans[i];
+  
+        s.textContent = c.g === " " ? "\u00A0" : c.g;
+        s.style.color = hslCss(c.h, c.s, c.l);
       }
     }
-
-    fileInput.addEventListener("change", async (e) => {
-      const f = e.target.files?.[0];
-      if (!f) return;
-      loadText(await f.text());
-    });
-
-
+  
+    function play() {
+      renderFrame(frames[frameIndex]);
+      frameIndex = (frameIndex + 1) % frames.length;
+    }
+  
+    async function loadFrames() {
+      // CHANGE THIS if your frame count differs
+      const FRAME_COUNT = 150;
+  
+      for (let i = 0; i < FRAME_COUNT; i++) {
+        const name = `frames/${i}.json`;
+        const res = await fetch(name);
+        frames.push(await res.json());
+      }
+  
+      buildGrid(frames[0]);
+      setInterval(play, frameTime);
+    }
+  
+    loadFrames();
   </script>
+  
 </body>
 </html>

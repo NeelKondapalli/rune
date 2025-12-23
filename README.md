@@ -1,4 +1,4 @@
-# rune
+# ᛚ rune
 
 A minimal ASCII rendering engine for images and video frames.
 

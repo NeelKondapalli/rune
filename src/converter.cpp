@@ -5,11 +5,75 @@
 #include "rune/ramp.hpp"
 #include "rune/converter.hpp"
 #include "rune/json.hpp"
-#include <iostream>
-
-
 namespace rune {
     namespace converter {
+        void convert_video_to_ascii(const std::string& filename, int target_width, int target_fps, const std::string& output_folder) {
+            std::filesystem::path out_dir = "tmp";
+            std::filesystem::create_directories(out_dir);
+
+            for (auto& entry : std::filesystem::directory_iterator(out_dir)) {
+                std::filesystem::remove_all(entry.path());
+            }
+
+            std::string cmd =
+                "ffmpeg -y -i \"" + filename + "\" "
+                "-vf fps=" + std::to_string(target_fps) + " "
+                + out_dir.string() + "/frame_%05d.jpg";
+
+                int ret = std::system(cmd.c_str());
+                if (ret != 0) {
+                    throw std::runtime_error("ffmpeg failed");
+            }
+
+            // gather all frames in the output directory
+            std::vector<std::filesystem::path> frames;
+
+            for (const auto& entry : std::filesystem::directory_iterator(out_dir)) {
+                frames.push_back(entry.path());
+            }
+            
+            std::sort(frames.begin(), frames.end());
+
+            int frame_count = frames.size();
+
+            int counter = 0;
+            std::filesystem::create_directories(output_folder);
+            for (auto& entry : std::filesystem::directory_iterator(output_folder)) {
+                std::filesystem::remove_all(entry.path());
+            }
+
+            for (auto& frame : frames) {
+               
+                std::ofstream out(output_folder + "/" + std::to_string(counter) + ".json");
+                if (!out) {
+                    std::cerr << "failed to open output file\n";
+                    continue;
+                }
+                convert_image_to_ascii(frame.string(), target_width, out);
+                counter++;
+                print_progress(counter, frame_count);
+            }
+
+        }
+
+        void print_progress(int counter, int frame_count) {
+            const int bar_width = 40;
+            float progress = static_cast<float>(counter) / frame_count;
+            int filled = static_cast<int>(bar_width * progress);
+        
+            std::cout << "\r[";
+            for (int i = 0; i < bar_width; ++i) {
+                if (i < filled) std::cout << "█";
+                else std::cout << "-";
+            }
+        
+            std::cout << "] "
+                      << std::setw(3) << static_cast<int>(progress * 100) << "% "
+                      << "(" << counter << "/" << frame_count << ")"
+                      << std::flush;
+        }
+
+
         void convert_image_to_ascii(const std::string& filename, int target_width, std::ostream& out) {
             ImageBuffer image_buffer = load_image_pixels(filename);
             ImageBuffer resized_image_buffer = resize_image_pixels(image_buffer, target_width);
@@ -87,7 +151,7 @@ namespace rune {
 
                     int ascii_index = static_cast<int>(t * (rune::ramps::SIMPLE.chars.size() - 1));
 
-                    cell.glyph = rune::ramps::SIMPLE.chars[ascii_index];
+                    cell.glyph = rune::ramps::BLOCKS.chars[ascii_index];
                     cell.h = hsl.h;
                     cell.s = hsl.s;
                     cell.l = hsl.l;
