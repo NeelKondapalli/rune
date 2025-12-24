@@ -6,10 +6,15 @@
 namespace rune {
 
     namespace json {
-        void write_json(
+        void write_cells(
             std::ostream& out,
             rune::converter::ImageBuffer& image_buffer,
             const std::vector<rune::Cell>& cells
+        );
+
+        void write_manifest(
+            std::ostream& out, 
+            const rune::converter::ImageBuffer& image_buffer
         );
     }
 

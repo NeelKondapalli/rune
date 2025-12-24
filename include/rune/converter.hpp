@@ -33,7 +33,12 @@ namespace rune {
             int channels;
         };
 
-        void convert_image_to_ascii(const std::string& filename, int target_width, std::ostream& out);
+        struct AsciiFrame {
+            ImageBuffer image_buffer;
+            std::vector<rune::Cell> cells;
+        };
+
+        AsciiFrame convert_image_to_ascii(const std::string& filename, int target_width, std::ostream& out);
 
         void convert_video_to_ascii(const std::string& filename, int target_width, int target_fps, const std::string& output_folder);
 

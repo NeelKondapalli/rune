@@ -5,6 +5,7 @@
 #include "rune/ramp.hpp"
 #include "rune/converter.hpp"
 #include "rune/json.hpp"
+
 namespace rune {
     namespace converter {
         void convert_video_to_ascii(const std::string& filename, int target_width, int target_fps, const std::string& output_folder) {
@@ -25,6 +26,17 @@ namespace rune {
                     throw std::runtime_error("ffmpeg failed");
             }
 
+            std::filesystem::create_directories(output_folder);
+            for (auto& entry : std::filesystem::directory_iterator(output_folder)) {
+                std::filesystem::remove_all(entry.path());
+            }
+
+            std::ofstream manifest_out(output_folder + "/manifest.json");
+            if (!manifest_out) {
+                std::cerr << "failed to open output file\n";
+                return;
+            }
+
             // gather all frames in the output directory
             std::vector<std::filesystem::path> frames;
 
@@ -37,19 +49,25 @@ namespace rune {
             int frame_count = frames.size();
 
             int counter = 0;
-            std::filesystem::create_directories(output_folder);
-            for (auto& entry : std::filesystem::directory_iterator(output_folder)) {
-                std::filesystem::remove_all(entry.path());
-            }
+
+            bool manifest_written = false;
 
             for (auto& frame : frames) {
-               
-                std::ofstream out(output_folder + "/" + std::to_string(counter) + ".json");
-                if (!out) {
+                std::ofstream data_out(output_folder + "/" + std::to_string(counter) + ".json");
+                if (!data_out) {
                     std::cerr << "failed to open output file\n";
                     continue;
                 }
-                convert_image_to_ascii(frame.string(), target_width, out);
+
+                AsciiFrame ascii_frame = convert_image_to_ascii(frame.string(), target_width, data_out);
+
+                if (!manifest_written) {
+                    json::write_manifest(manifest_out, ascii_frame.image_buffer);
+                    manifest_written = true;
+                }
+
+                json::write_cells(data_out, ascii_frame.image_buffer, ascii_frame.cells);
+
                 counter++;
                 print_progress(counter, frame_count);
             }
@@ -74,11 +92,14 @@ namespace rune {
         }
 
 
-        void convert_image_to_ascii(const std::string& filename, int target_width, std::ostream& out) {
+        AsciiFrame convert_image_to_ascii(const std::string& filename, int target_width, std::ostream& out) {
+            AsciiFrame ascii_frame;
             ImageBuffer image_buffer = load_image_pixels(filename);
             ImageBuffer resized_image_buffer = resize_image_pixels(image_buffer, target_width);
             std::vector<rune::Cell> cells = pixels_to_cells(resized_image_buffer);
-            json::write_json(out, resized_image_buffer, cells);
+            ascii_frame.image_buffer = resized_image_buffer;
+            ascii_frame.cells = cells;
+            return ascii_frame;
         }
 
         ImageBuffer load_image_pixels(const std::string& filename) {
