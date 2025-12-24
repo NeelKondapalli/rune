@@ -55,11 +55,13 @@ namespace rune {
                 out << "}\n";
         }
         
-        void write_manifest(std::ostream& out, const rune::converter::ImageBuffer& image_buffer) {
+        void write_manifest(std::ostream& out, const rune::converter::ImageBuffer& image_buffer, int fps, int frame_count) {
             out << "{\n";
             out << "  \"cols\": " << image_buffer.width << ",\n";
             out << "  \"rows\": " << image_buffer.height / 2 << ",\n";
-            out << "  \"channels\": " << image_buffer.channels << "\n";
+            out << "  \"channels\": " << image_buffer.channels << ",\n";
+            out << "  \"fps\": " << fps << ",\n";
+            out << "  \"frame_count\": " << frame_count << "\n";
             out << "}\n";
         }
     }

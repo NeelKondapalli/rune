@@ -62,7 +62,7 @@ namespace rune {
                 AsciiFrame ascii_frame = convert_image_to_ascii(frame.string(), target_width, data_out);
 
                 if (!manifest_written) {
-                    json::write_manifest(manifest_out, ascii_frame.image_buffer);
+                    json::write_manifest(manifest_out, ascii_frame.image_buffer, target_fps, frame_count);
                     manifest_written = true;
                 }
 
@@ -172,7 +172,7 @@ namespace rune {
 
                     int ascii_index = static_cast<int>(t * (rune::ramps::SIMPLE.chars.size() - 1));
 
-                    cell.glyph = rune::ramps::BLOCKS.chars[ascii_index];
+                    cell.glyph = rune::ramps::DENSE.chars[ascii_index];
                     cell.h = hsl.h;
                     cell.s = hsl.s;
                     cell.l = hsl.l;
