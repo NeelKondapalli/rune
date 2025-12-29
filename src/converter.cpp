@@ -1,5 +1,7 @@
 #define STB_IMAGE_IMPLEMENTATION
 #define STB_IMAGE_RESIZE_IMPLEMENTATION
+#define ZLIB_VERSION "1.3.1"
+#define ZLIB_VERNUM 0x1310
 #include "stb/stb_image.h"
 #include "stb/stb_image_resize.h"
 #include "rune/ramp.hpp"
@@ -52,14 +54,28 @@ namespace rune {
 
             bool manifest_written = false;
 
-            for (auto& frame : frames) {
-                std::ofstream data_out(output_folder + "/" + std::to_string(counter) + ".json");
-                if (!data_out) {
-                    std::cerr << "failed to open output file\n";
-                    continue;
-                }
+            std::string filename_base = output_folder + "/" + "frames";
 
-                AsciiFrame ascii_frame = convert_image_to_ascii(frame.string(), target_width, data_out);
+            std::string filename_jsonl_gzip = filename_base + ".jsonl.gz";
+            gzFile gz = gzopen(filename_jsonl_gzip.c_str(), "wb");
+
+            if (!gz) {
+                std::cerr << "failed to open gzip file\n";
+                return;
+            }
+
+            std::string filename_jsonl = filename_base + ".jsonl";
+            std::ofstream data_out(filename_jsonl, std::ios::out | std::ios::app);
+            if (!data_out) {
+                std::cerr << "failed to open output file\n";
+                return;
+            }
+
+            for (auto& frame : frames) {
+    
+                AsciiFrame ascii_frame = convert_image_to_ascii(frame.string(), target_width);
+
+               // add_html(ascii_frame);
 
                 if (!manifest_written) {
                     json::write_manifest(manifest_out, ascii_frame.image_buffer, target_fps, frame_count);
@@ -67,12 +83,19 @@ namespace rune {
                 }
 
                 json::write_cells(data_out, ascii_frame.image_buffer, ascii_frame.cells);
+                json::write_cells_gzip(gz, ascii_frame.image_buffer, ascii_frame.cells);
 
                 counter++;
                 print_progress(counter, frame_count);
             }
 
+            gzclose(gz);
+
         }
+
+        // void add_html(AsciiFrame& ascii_frame) {
+
+        // }
 
         void print_progress(int counter, int frame_count) {
             const int bar_width = 40;
@@ -92,7 +115,7 @@ namespace rune {
         }
 
 
-        AsciiFrame convert_image_to_ascii(const std::string& filename, int target_width, std::ostream& out) {
+        AsciiFrame convert_image_to_ascii(const std::string& filename, int target_width) {
             AsciiFrame ascii_frame;
             ImageBuffer image_buffer = load_image_pixels(filename);
             ImageBuffer resized_image_buffer = resize_image_pixels(image_buffer, target_width);

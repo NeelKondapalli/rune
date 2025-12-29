@@ -13,7 +13,7 @@
 #include <fstream>
 #include <filesystem>
 #include <iomanip>
-
+#include <zlib.h>
 
 
 namespace rune {
@@ -36,9 +36,12 @@ namespace rune {
         struct AsciiFrame {
             ImageBuffer image_buffer;
             std::vector<rune::Cell> cells;
+            std::string html = "";
         };
 
-        AsciiFrame convert_image_to_ascii(const std::string& filename, int target_width, std::ostream& out);
+        AsciiFrame convert_image_to_ascii(const std::string& filename, int target_width);
+
+        // void add_html(AsciiFrame& ascii_frame)
 
         void convert_video_to_ascii(const std::string& filename, int target_width, int target_fps, const std::string& output_folder);
 

@@ -46,19 +46,19 @@ int main(int argc, char** argv) {
         }
     }
 
-    if (mode == "image") {
-        if (output.empty()) {
-            rune::converter::convert_image_to_ascii(input, width, std::cout);
-        } else {
-            std::ofstream out(output);
-            if (!out) {
-                std::cerr << "failed to open output file\n";
-                return 1;
-            }
-            rune::converter::convert_image_to_ascii(input, width, out);
-        }
-    }
-    else if (mode == "video") {
+    // if (mode == "image") {
+    //     if (output.empty()) {
+    //         rune::converter::convert_image_to_ascii(input, width, std::cout);
+    //     } else {
+    //         std::ofstream out(output);
+    //         if (!out) {
+    //             std::cerr << "failed to open output file\n";
+    //             return 1;
+    //         }
+    //         rune::converter::convert_image_to_ascii(input, width, out);
+    //     }
+    // }
+    if (mode == "video") {
         rune::converter::convert_video_to_ascii(input, width, target_fps, output);
     } else {
         std::cerr << "unknown mode: " << mode << "\n";
