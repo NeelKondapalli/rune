@@ -11,7 +11,7 @@ find_package(ZLIB REQUIRED)
 # ---- Library (core engine) ----
 add_library(rune
     src/converter.cpp
-    src/json.cpp
+    src/writer.cpp
 )
 
 target_include_directories(rune

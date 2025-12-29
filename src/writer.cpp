@@ -3,7 +3,7 @@
 #include <ostream>
 
 namespace rune {
-    namespace json {
+    namespace writer {
         // void write_json(std::ostream& out, rune::converter::ImageBuffer& image_buffer, const std::vector<rune::Cell>& cells) {
         //     out << "{\n";
         //     out << "  \"cols\": " << image_buffer.width << ",\n";
@@ -77,6 +77,14 @@ namespace rune {
             out << R"(]})" << "\n";
         }
 
+        void write_html(
+            std::ostream& out,
+            const std::string& html
+        ) {
+            out << html << "\n";
+
+        }
+
         void write_cells_gzip(
             gzFile gz,
             rune::converter::ImageBuffer& image_buffer,
@@ -94,11 +102,11 @@ namespace rune {
                 write(R"({"g":")");
                 gzwrite(gz, &c.glyph, 1);
                 write(R"(","h":)");
-                write(std::to_string(static_cast<uint8_t>(c.h * 255.0f / 360.0f)));
+                write(std::to_string(static_cast<uint8_t>(c.h * 255.0f / 360.0f))); // h is degress -> find ratio / 360 and norm to 255
                 write(R"(,"s":)");
-                write(std::to_string(static_cast<uint8_t>(c.s * 255.0f)));
+                write(std::to_string(static_cast<uint8_t>(c.s * 255.0f))); // s is a ratio -> norm to 255
                 write(R"(,"l":)");
-                write(std::to_string(static_cast<uint8_t>(c.l * 255.0f)));
+                write(std::to_string(static_cast<uint8_t>(c.l * 255.0f))); // l is a ratio -> norm to 255
                 write("})");
         
                 if (i + 1 < cells.size()) {

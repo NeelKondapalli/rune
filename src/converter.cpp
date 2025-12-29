@@ -6,7 +6,7 @@
 #include "stb/stb_image_resize.h"
 #include "rune/ramp.hpp"
 #include "rune/converter.hpp"
-#include "rune/json.hpp"
+#include "rune/writer.hpp"
 
 namespace rune {
     namespace converter {
@@ -65,8 +65,15 @@ namespace rune {
             }
 
             std::string filename_jsonl = filename_base + ".jsonl";
-            std::ofstream data_out(filename_jsonl, std::ios::out | std::ios::app);
-            if (!data_out) {
+            std::ofstream j_data_out(filename_jsonl, std::ios::out | std::ios::app);
+            if (!j_data_out) {
+                std::cerr << "failed to open output file\n";
+                return;
+            }
+
+            std::string filename_html = filename_base + ".txt";
+            std::ofstream h_data_out(filename_html, std::ios::out | std::ios::app);
+            if (!h_data_out) {
                 std::cerr << "failed to open output file\n";
                 return;
             }
@@ -75,15 +82,16 @@ namespace rune {
     
                 AsciiFrame ascii_frame = convert_image_to_ascii(frame.string(), target_width);
 
-               // add_html(ascii_frame);
+               add_html(ascii_frame);
 
                 if (!manifest_written) {
-                    json::write_manifest(manifest_out, ascii_frame.image_buffer, target_fps, frame_count);
+                    writer::write_manifest(manifest_out, ascii_frame.image_buffer, target_fps, frame_count);
                     manifest_written = true;
                 }
 
-                json::write_cells(data_out, ascii_frame.image_buffer, ascii_frame.cells);
-                json::write_cells_gzip(gz, ascii_frame.image_buffer, ascii_frame.cells);
+                writer::write_cells(j_data_out, ascii_frame.image_buffer, ascii_frame.cells);
+                writer::write_cells_gzip(gz, ascii_frame.image_buffer, ascii_frame.cells);
+                writer::write_html(h_data_out, ascii_frame.html);
 
                 counter++;
                 print_progress(counter, frame_count);
@@ -93,9 +101,81 @@ namespace rune {
 
         }
 
-        // void add_html(AsciiFrame& ascii_frame) {
+        void add_html(AsciiFrame& ascii_frame) {
+            int span_counter = 0;
+            std::string html = "";
+            int width = ascii_frame.image_buffer.width;
+            std::vector<rune::Cell> cells = ascii_frame.cells;
+            char lastGlyph = '\0';
+            float lastH = -1;
+            float lastS = -1;
+            float lastL = -1;
+            std::string run = "";
 
-        // }
+            for (int i = 0; i < cells.size(); i++) {
+                if (i != 0 && i % width == 0) {
+                    html += R"(<br>)";
+                }
+                rune::Cell cell = cells[i];
+                char glyph = cell.glyph;
+                float html_h = cell.h;
+                float html_s = cell.s * 100;
+                float html_l = cell.l * 100;
+
+                if (lastGlyph == '\0') {
+                    lastGlyph = glyph;
+                    lastH = html_h;
+                    lastS = html_s;
+                    lastL = html_l;
+                    run.push_back(glyph);
+                    continue;
+                }
+
+                if (glyph == lastGlyph && html_h == lastH && html_s == lastS && html_l == lastL) {
+                    run.push_back(glyph);
+                    continue;
+                } else {
+                    html += R"(<span style="color:hsl()";
+                    html += std::to_string(int(lastH));
+                    html += ",";
+                    html += std::to_string(int(lastS));
+                    html += "%,";
+                    html += std::to_string(int(lastL));
+                    html += "%)";                    
+                    html.push_back(')');
+                    html += R"(">)";
+                    html += run;
+                    html += R"(</span>)";
+                    run.clear();
+                    lastGlyph = glyph;
+                    lastH = html_h;
+                    lastS = html_s;
+                    lastL = html_l;
+                    run.push_back(glyph);
+
+                    span_counter++;
+                }
+            }
+            html += R"(<span style="color:hsl()";
+            html += std::to_string(int(lastH));
+            html += ",";
+            html += std::to_string(int(lastS));
+            html += "%,";
+            html += std::to_string(int(lastL));
+            html += "%)";                    
+            html.push_back(')');
+            html += R"(">)";
+            html += run;
+            html += R"(</span>)";
+            span_counter++;
+
+            std::cout << "\n\nNaive span count: " << cells.size() << std::endl;
+            std::cout << "Chunked span count: " << span_counter << std::endl;
+            std::cout << "Chunked is: " << (100 - (static_cast<float>(span_counter) / cells.size()) * 100.0f) << "% less" << std::endl << std::endl;
+
+            ascii_frame.html = html;
+        }
+
 
         void print_progress(int counter, int frame_count) {
             const int bar_width = 40;
@@ -196,9 +276,9 @@ namespace rune {
                     int ascii_index = static_cast<int>(t * (rune::ramps::SIMPLE.chars.size() - 1));
 
                     cell.glyph = rune::ramps::DENSE.chars[ascii_index];
-                    cell.h = hsl.h;
-                    cell.s = hsl.s;
-                    cell.l = hsl.l;
+                    cell.h = hsl.h; // degrees
+                    cell.s = hsl.s; // ratio
+                    cell.l = hsl.l; // ratio
                     cells.push_back(cell);
                 }
             }
@@ -240,5 +320,6 @@ namespace rune {
 
             return out;
         }
+
     }
 }

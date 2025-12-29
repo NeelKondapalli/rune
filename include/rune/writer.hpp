@@ -6,11 +6,16 @@
 
 namespace rune {
 
-    namespace json {
+    namespace writer {
         void write_cells(
             std::ostream& out,
             rune::converter::ImageBuffer& image_buffer,
             const std::vector<rune::Cell>& cells
+        );
+
+        void write_html(
+            std::ostream& out,
+            const std::string& html
         );
 
         void write_cells_gzip(
