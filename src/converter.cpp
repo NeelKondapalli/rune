@@ -101,80 +101,80 @@ namespace rune {
 
         }
 
+        
         void add_html(AsciiFrame& ascii_frame) {
-            int span_counter = 0;
-            std::string html = "";
-            int width = ascii_frame.image_buffer.width;
-            std::vector<rune::Cell> cells = ascii_frame.cells;
+            const int width = ascii_frame.image_buffer.width;
+            const auto& cells = ascii_frame.cells;
+        
+            std::string html;
+            html.reserve(cells.size() * 6);
+        
             char lastGlyph = '\0';
-            float lastH = -1;
-            float lastS = -1;
-            float lastL = -1;
-            std::string run = "";
+            int lastH = -1, lastS = -1, lastL = -1;
+            std::string run;
+        
+            auto flush_run = [&]() {
+                if (run.empty()) return;
+        
+                html += "<span style=\"color:hsl(";
+                html += std::to_string(lastH);
+                html += ",";
+                html += std::to_string(lastS);
+                html += "%,";
+                html += std::to_string(lastL);
+                html += "%)\">";
+                html += run;
+                html += "</span>";
+        
+                run.clear();
+            };
+        
+            for (size_t i = 0; i < cells.size(); ++i) {
 
-            for (int i = 0; i < cells.size(); i++) {
+
                 if (i != 0 && i % width == 0) {
-                    html += R"(<br>)";
+                    flush_run();          
+                    html += "\\n";       
+                    lastGlyph = '\0';    
+                    lastH = lastS = lastL = -1;
                 }
-                rune::Cell cell = cells[i];
+        
+                const rune::Cell& cell = cells[i];
+        
                 char glyph = cell.glyph;
-                float html_h = cell.h;
-                float html_s = cell.s * 100;
-                float html_l = cell.l * 100;
+                int h = static_cast<int>(cell.h);        // degrees
+                int s = static_cast<int>(cell.s * 100);  // %
+                int l = static_cast<int>(cell.l * 100);  // %
+        
 
                 if (lastGlyph == '\0') {
                     lastGlyph = glyph;
-                    lastH = html_h;
-                    lastS = html_s;
-                    lastL = html_l;
+                    lastH = h;
+                    lastS = s;
+                    lastL = l;
                     run.push_back(glyph);
                     continue;
                 }
-
-                if (glyph == lastGlyph && html_h == lastH && html_s == lastS && html_l == lastL) {
+        
+             
+                if (glyph == lastGlyph && h == lastH && s == lastS && l == lastL) {
                     run.push_back(glyph);
                     continue;
-                } else {
-                    html += R"(<span style="color:hsl()";
-                    html += std::to_string(int(lastH));
-                    html += ",";
-                    html += std::to_string(int(lastS));
-                    html += "%,";
-                    html += std::to_string(int(lastL));
-                    html += "%)";                    
-                    html.push_back(')');
-                    html += R"(">)";
-                    html += run;
-                    html += R"(</span>)";
-                    run.clear();
-                    lastGlyph = glyph;
-                    lastH = html_h;
-                    lastS = html_s;
-                    lastL = html_l;
-                    run.push_back(glyph);
-
-                    span_counter++;
                 }
+        
+                flush_run();
+                lastGlyph = glyph;
+                lastH = h;
+                lastS = s;
+                lastL = l;
+                run.push_back(glyph);
             }
-            html += R"(<span style="color:hsl()";
-            html += std::to_string(int(lastH));
-            html += ",";
-            html += std::to_string(int(lastS));
-            html += "%,";
-            html += std::to_string(int(lastL));
-            html += "%)";                    
-            html.push_back(')');
-            html += R"(">)";
-            html += run;
-            html += R"(</span>)";
-            span_counter++;
+        
 
-            std::cout << "\n\nNaive span count: " << cells.size() << std::endl;
-            std::cout << "Chunked span count: " << span_counter << std::endl;
-            std::cout << "Chunked is: " << (100 - (static_cast<float>(span_counter) / cells.size()) * 100.0f) << "% less" << std::endl << std::endl;
-
-            ascii_frame.html = html;
-        }
+            flush_run();
+        
+            ascii_frame.html = std::move(html);
+        }        
 
 
         void print_progress(int counter, int frame_count) {

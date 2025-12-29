@@ -65,6 +65,6 @@ int main(int argc, char** argv) {
         return 1;
     }
 
-    std::cout << "\nconversion complete. thank you for using ᛚune\n" << std::endl;
+    std::cout << "\n\nconversion complete. thank you for using ᛚune\n" << std::endl;
     return 0;
 }

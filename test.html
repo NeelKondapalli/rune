@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>ASCII Frame Viewer</title>
+
+  <style>
+    body {
+      background: #000;
+      color: #fff;
+      font-family: ui-monospace, Menlo, Consolas, monospace;
+      padding: 16px;
+    }
+
+    input, button {
+      margin-right: 8px;
+    }
+
+    pre {
+      margin-top: 16px;
+      line-height: 1.1;
+      white-space: pre;
+      font-size: 12px;
+    }
+  </style>
+</head>
+
+<body>
+  <h3>ASCII Frame Viewer</h3>
+
+  <input type="file" id="fileInput" accept=".txt" />
+  <input type="number" id="frameIndex" value="0" min="0" />
+  <button id="showBtn">Show Frame</button>
+
+  <div id="info"></div>
+
+  <pre id="output"></pre>
+
+  <script>
+    const fileInput = document.getElementById("fileInput");
+    const frameInput = document.getElementById("frameIndex");
+    const output = document.getElementById("output");
+    const info = document.getElementById("info");
+    const showBtn = document.getElementById("showBtn");
+
+    let frames = [];
+
+    fileInput.addEventListener("change", async () => {
+      const file = fileInput.files[0];
+      if (!file) return;
+
+      const text = await file.text();
+
+      frames = text
+        .split("\n")
+        .filter(Boolean)
+        .map(line => line.replace(/\\n/g, "\n"));
+
+      info.textContent = `Loaded ${frames.length} frames`;
+      frameInput.max = frames.length - 1;
+
+      showFrame(0);
+    });
+
+    showBtn.addEventListener("click", () => {
+      showFrame(Number(frameInput.value));
+    });
+
+    function showFrame(i) {
+      if (i < 0 || i >= frames.length) return;
+      output.innerHTML = frames[i];
+    }
+  </script>
+</body>
+</html>
