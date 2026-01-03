@@ -50,11 +50,11 @@ All metrics are based on a reference video:
 - **Total estimated:** ~135-200 MB
 
 ### Performance Characteristics
-✗ **Network:** Multiple HTTP requests cause latency
-✗ **Parse time:** JSON parsing on every frame load
-✗ **Memory:** High due to object overhead
-✗ **File management:** 161 files difficult to manage
-✓ **Streaming:** Frames can be loaded progressively
+- **[✗] Network:** Multiple HTTP requests cause latency
+- **[✗] Parse time:** JSON parsing on every frame load
+- **[✗] Memory:** High due to object overhead
+- **[✗] File management:** 161 files difficult to manage
+- **[✓] Streaming:** Frames can be loaded progressively
 
 ### Problems Identified
 1. Object property names ("g", "h", "s", "l") repeated 2.4 million times
@@ -109,13 +109,13 @@ This reduces span count by >50% while controlling HTML size.
 - **Total estimated:** ~93-103 MB
 
 ### Performance Characteristics
-✓ **Network:** Single request for all frames
-✓ **File management:** One file to deploy
-✓ **Size:** 45% smaller than raw JSON
-✗ **DOM thrashing:** `innerHTML` destroys and rebuilds DOM every frame
-✗ **Parse overhead:** HTML parsing on every frame render
-✗ **Memory:** Full HTML strings stored in memory
-✓ **Compression potential:** Repetitive HTML compresses well
+- **[✓] Network:** Single request for all frames
+- **[✓] File management:** One file to deploy
+- **[✓] Size:** 45% smaller than raw JSON
+- **[✗] DOM thrashing:** `innerHTML` destroys and rebuilds DOM every frame
+- **[✗] Parse overhead:** HTML parsing on every frame render
+- **[✗] Memory:** Full HTML strings stored in memory
+- **[✓] Compression potential:** Repetitive HTML compresses well
 
 ### Problems Identified
 1. Full DOM reconstruction every frame (14,800 elements destroyed/created)
@@ -271,13 +271,13 @@ function renderFrame(frameIndex) {
 
 ### Approach 3 Advantages
 
-✓ **Memory:** 78-89% reduction vs previous approaches
-✓ **Network:** 96.5% smaller file size with gzip
-✓ **Rendering:** Minimal DOM updates, smooth 11 FPS playback
-✓ **CPU:** One-time parse cost, then cheap array access
-✓ **Startup:** Fast initial load + parse (~2 seconds on 10 Mbps)
-✓ **Format flexibility:** 3 outputs (JSONL, gzip, HTML) for different use cases
-✓ **Compression:** Leverages gzip's strength with repetitive data
+- **[✓] Memory:** 78-89% reduction vs previous approaches
+- **[✓] Network:** 96.5% smaller file size with gzip
+- **[✓] Rendering:** Minimal DOM updates, smooth 11 FPS playback
+- **[✓] CPU:** One-time parse cost, then cheap array access
+- **[✓] Startup:** Fast initial load + parse (~2 seconds on 10 Mbps)
+- **[✓] Format flexibility:** 3 outputs (JSONL, gzip, HTML) for different use cases
+- **[✓] Compression:** Leverages gzip's strength with repetitive data
 
 ### Remaining Optimizations
 

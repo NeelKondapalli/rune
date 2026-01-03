@@ -48,10 +48,6 @@ cd build
 cmake --build .
 ```
 
-### Convert image → ASCII frame
-
-```bash
-rune_cli input.jpg --width 160 --out frame.json
 ```
 
 ### Convert video → ASCII frames
@@ -285,28 +281,6 @@ The component handles:
 - Lazy loading with fade-in
 - Lifecycle cleanup
 - Performance logging
-
----
-
-## ✦ Frame format
-
-```json
-{
-  "cols": 160,
-  "rows": 90,
-  "cells": [
-    { "g": "#", "h": 30, "s": 180, "l": 200 },
-    ...
-  ]
-}
-```
-
-Each cell represents **one character**:
-
-* `g` → glyph
-* `h/s/l` → color (quantized HSL)
-
-This format is renderer-agnostic and streamable.
 
 ---
 
