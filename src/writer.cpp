@@ -107,7 +107,7 @@ namespace rune {
                 write(std::to_string(static_cast<uint8_t>(c.s * 255.0f))); // s is a ratio -> norm to 255
                 write(R"(,"l":)");
                 write(std::to_string(static_cast<uint8_t>(c.l * 255.0f))); // l is a ratio -> norm to 255
-                write("})");
+                write("}");
         
                 if (i + 1 < cells.size()) {
                     write(",");
