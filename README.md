@@ -157,7 +157,7 @@ The component handles:
 
 ---
 
-## 5. Design philosophy
+## ✦ Design philosophy
 
 * ASCII is typography, not pixels
 * Prefer crisp text rendering over rasterization
@@ -166,7 +166,7 @@ The component handles:
 
 ---
 
-## 6. Etymology
+## ✦ Etymology
 
 **rune**
 
@@ -179,7 +179,7 @@ small symbols, arranged precisely, producing something greater than their parts.
 
 ---
 
-## 7. Status
+## ✦ Status
 
 This project is actively evolving.
 
@@ -192,7 +192,7 @@ Upcoming directions:
 
 ---
 
-## 8. License
+## ✦ License
 
 MIT
 
