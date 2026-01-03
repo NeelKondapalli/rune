@@ -1,0 +1,10 @@
+.ascii-surface {
+    display: inline-block;
+    white-space: pre;
+    font-family: ui-monospace, monospace;
+    line-height: 1.1;
+    font-size: 5px;
+    will-change: contents;
+    transition: opacity 1s ease-in;
+  }
+  
