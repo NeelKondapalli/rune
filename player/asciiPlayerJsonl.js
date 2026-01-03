@@ -15,6 +15,10 @@ export function createAsciiPlayerJsonl({
   let saturations = null; // Uint8Array - saturation (0-100)
   let lightness = null;   // Uint8Array - lightness (0-255)
 
+  // Pre-allocated caches (ZERO allocation in render loop)
+  let glyphCache = null;     // Array of 256 pre-allocated character strings
+  let colorStrings = null;   // Pre-computed hsl() strings for all cells
+
   let frameCount = 0;
   let cellCount = 0;
   let frameIndex = 0;
@@ -31,6 +35,14 @@ export function createAsciiPlayerJsonl({
   let accumulator = 0;
 
   let isFullyLoaded = false;
+
+  // Build glyph cache once (all 256 possible ASCII chars)
+  function initGlyphCache() {
+    glyphCache = new Array(256);
+    for (let i = 0; i < 256; i++) {
+      glyphCache[i] = String.fromCharCode(i);
+    }
+  }
 
   function hslToString(h, s, l) {
     return `hsl(${h}, ${s}%, ${l}%)`;
@@ -124,10 +136,23 @@ export function createAsciiPlayerJsonl({
     const parseTime = performance.now() - parseStartTime;
     console.log(`[AsciiPlayer] All frames parsed in ${parseTime.toFixed(0)}ms`);
 
+    // Pre-compute ALL color strings (done once, never allocate again)
+    console.log('[AsciiPlayer] Pre-computing color strings...');
+    const colorStartTime = performance.now();
+    colorStrings = new Array(totalCells);
+    for (let i = 0; i < totalCells; i++) {
+      colorStrings[i] = hslToString(hues[i], saturations[i], lightness[i]);
+    }
+    const colorTime = performance.now() - colorStartTime;
+    console.log(`[AsciiPlayer] Color strings computed in ${colorTime.toFixed(0)}ms`);
+
+    // Initialize glyph cache
+    initGlyphCache();
+
     const totalBytes = glyphs.byteLength + hues.byteLength +
                        saturations.byteLength + lightness.byteLength;
     console.log(`[AsciiPlayer] Loaded ${frameCount} frames, ${cellCount} cells/frame`);
-    console.log(`[AsciiPlayer] Memory: ${(totalBytes / 1024 / 1024).toFixed(1)} MB (typed arrays)`);
+    console.log(`[AsciiPlayer] Memory: ${(totalBytes / 1024 / 1024).toFixed(1)} MB (frame data)`);
 
     return cellCount;
   }
@@ -149,31 +174,57 @@ export function createAsciiPlayerJsonl({
   }
 
   function renderFrame() {
-    const offset = frameIndex * cellCount;
+    const currOffset = frameIndex * cellCount;
 
-    for (let i = 0; i < cellCount; i++) {
-      const idx = offset + i;
-      const span = cellSpans[i];
+    // First frame: render everything (no diff check possible)
+    if (frameIndex === 0) {
+      for (let i = 0; i < cellCount; i++) {
+        const currIdx = currOffset + i;
+        const span = cellSpans[i];
 
-      const char = String.fromCharCode(glyphs[idx]);
-      if (span.textContent !== char) {
-        span.textContent = char;
+        span.textContent = glyphCache[glyphs[currIdx]];
+        span.style.color = colorStrings[currIdx];
       }
 
-      const h = hues[idx];
-      const s = saturations[idx];
-      const l = lightness[idx];
-      const color = hslToString(h, s, l);
-
-      if (span.style.color !== color) {
-        span.style.color = color;
+      // Call onReady after first frame is rendered
+      if (onReady) {
+        onReady();
+        onReady = null; // Only call once
       }
+
+      frameIndex = 1;
+      return;
     }
 
-    // Call onReady after first frame is rendered
-    if (frameIndex === 0 && onReady) {
-      onReady();
-      onReady = null; // Only call once
+    // All other frames: diff against previous frame
+    const prevFrameIndex = frameIndex - 1;
+    const prevOffset = prevFrameIndex * cellCount;
+
+    for (let i = 0; i < cellCount; i++) {
+      const currIdx = currOffset + i;
+      const prevIdx = prevOffset + i;
+      const span = cellSpans[i];
+
+      // Check glyph change (byte comparison against previous frame)
+      const currentGlyph = glyphs[currIdx];
+      const previousGlyph = glyphs[prevIdx];
+      if (previousGlyph !== currentGlyph) {
+        span.textContent = glyphCache[currentGlyph]; // Use pre-allocated string
+      }
+
+      // Check color change (byte comparisons against previous frame)
+      const currentH = hues[currIdx];
+      const currentS = saturations[currIdx];
+      const currentL = lightness[currIdx];
+      const previousH = hues[prevIdx];
+      const previousS = saturations[prevIdx];
+      const previousL = lightness[prevIdx];
+
+      if (previousH !== currentH ||
+          previousS !== currentS ||
+          previousL !== currentL) {
+        span.style.color = colorStrings[currIdx]; // Use pre-computed string
+      }
     }
 
     frameIndex = (frameIndex + 1) % frameCount;
@@ -188,9 +239,9 @@ export function createAsciiPlayerJsonl({
 
     accumulator += delta;
 
-    while (accumulator >= frameTime) {
+    if (accumulator >= frameTime) {
       renderFrame();
-      accumulator -= frameTime;
+      accumulator = 0;
     }
 
     rafId = requestAnimationFrame(tick);
