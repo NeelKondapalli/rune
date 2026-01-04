@@ -56,17 +56,38 @@ namespace rune {
         // }
 
         void write_cells(
-            std::ostream& out, 
-            rune::converter::ImageBuffer& image_buffer, 
+            std::ostream& out,
+            rune::converter::ImageBuffer& image_buffer,
             const std::vector<rune::Cell>& cells
         ) {
-            
+
             out << R"({"cells":[)";
 
             for (size_t i = 0; i < cells.size(); ++i) {
                 const auto& c = cells[i];
 
-                out << R"({"g":")" << c.glyph << R"(","h":)" << int(static_cast<uint8_t>(c.h * 255.0f / 360.0f)) << R"(,"s":)" << int(static_cast<uint8_t>(c.s * 255.0f)) << R"(,"l":)" << int(static_cast<uint8_t>(c.l * 255.0f)) << R"(})";
+                out << R"({"g":")";
+
+                // Escape special JSON characters
+                if (c.glyph == '\\') {
+                    out << "\\\\";
+                } else if (c.glyph == '"') {
+                    out << "\\\"";
+                } else if (c.glyph == '\b') {
+                    out << "\\b";
+                } else if (c.glyph == '\f') {
+                    out << "\\f";
+                } else if (c.glyph == '\n') {
+                    out << "\\n";
+                } else if (c.glyph == '\r') {
+                    out << "\\r";
+                } else if (c.glyph == '\t') {
+                    out << "\\t";
+                } else {
+                    out << c.glyph;
+                }
+
+                out << R"(","h":)" << int(static_cast<uint8_t>(c.h * 255.0f / 360.0f)) << R"(,"s":)" << int(static_cast<uint8_t>(c.s * 255.0f)) << R"(,"l":)" << int(static_cast<uint8_t>(c.l * 255.0f)) << R"(})";
 
                 if (i + 1 < cells.size()) {
                     out << ",";
@@ -93,14 +114,33 @@ namespace rune {
             auto write = [&](const std::string& s) {
                 gzwrite(gz, s.data(), static_cast<unsigned int>(s.size()));
             };
-        
+
             write(R"({"cells":[)");
-        
+
             for (size_t i = 0; i < cells.size(); ++i) {
                 const auto& c = cells[i];
-        
+
                 write(R"({"g":")");
-                gzwrite(gz, &c.glyph, 1);
+
+                // Escape special JSON characters
+                if (c.glyph == '\\') {
+                    write("\\\\");
+                } else if (c.glyph == '"') {
+                    write("\\\"");
+                } else if (c.glyph == '\b') {
+                    write("\\b");
+                } else if (c.glyph == '\f') {
+                    write("\\f");
+                } else if (c.glyph == '\n') {
+                    write("\\n");
+                } else if (c.glyph == '\r') {
+                    write("\\r");
+                } else if (c.glyph == '\t') {
+                    write("\\t");
+                } else {
+                    gzwrite(gz, &c.glyph, 1);
+                }
+
                 write(R"(","h":)");
                 write(std::to_string(static_cast<uint8_t>(c.h * 255.0f / 360.0f))); // h is degress -> find ratio / 360 and norm to 255
                 write(R"(,"s":)");
@@ -108,12 +148,12 @@ namespace rune {
                 write(R"(,"l":)");
                 write(std::to_string(static_cast<uint8_t>(c.l * 255.0f))); // l is a ratio -> norm to 255
                 write("}");
-        
+
                 if (i + 1 < cells.size()) {
                     write(",");
                 }
             }
-        
+
             write("]}\n");
         }
         

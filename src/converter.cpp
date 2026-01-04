@@ -273,7 +273,7 @@ namespace rune {
 
                     float t = std::clamp(hsl.l, 0.0f, 1.0f);
 
-                    int ascii_index = static_cast<int>(t * (rune::ramps::SIMPLE.chars.size() - 1));
+                    int ascii_index = static_cast<int>(t * (rune::ramps::DENSE.chars.size() - 1));
 
                     cell.glyph = rune::ramps::DENSE.chars[ascii_index];
                     cell.h = hsl.h; // degrees
