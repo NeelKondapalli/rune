@@ -27,6 +27,7 @@ namespace rune {
         void write_manifest(
             std::ostream& out, 
             const rune::converter::ImageBuffer& image_buffer,
+            const std::string& type,
             int fps,
             int frame_count
         );

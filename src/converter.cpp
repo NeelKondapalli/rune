@@ -79,13 +79,13 @@ namespace rune {
             }
 
             for (auto& frame : frames) {
-    
-                AsciiFrame ascii_frame = convert_image_to_ascii(frame.string(), target_width);
-
-               add_html(ascii_frame);
+                AsciiFrame ascii_frame = convert_frame_to_ascii(frame.string(), target_width);
+                
+                add_html(ascii_frame);
 
                 if (!manifest_written) {
-                    writer::write_manifest(manifest_out, ascii_frame.image_buffer, target_fps, frame_count);
+                    const std::string type = "video";
+                    writer::write_manifest(manifest_out, ascii_frame.image_buffer, type, target_fps, frame_count);
                     manifest_written = true;
                 }
 
@@ -99,6 +99,57 @@ namespace rune {
 
             gzclose(gz);
 
+        }
+
+        void convert_image_to_ascii(const std::string& filename, int target_width, const std::string& output_folder) {
+            std::filesystem::create_directories(output_folder);
+            for (auto& entry : std::filesystem::directory_iterator(output_folder)) {
+                std::filesystem::remove_all(entry.path());
+            }
+
+            std::ofstream manifest_out(output_folder + "/manifest.json");
+            if (!manifest_out) {
+                std::cerr << "failed to open output file\n";
+                return;
+            }
+
+            std::string filename_base = output_folder + "/" + "frame";
+
+            std::string filename_jsonl = filename_base + ".jsonl";
+            std::ofstream j_data_out(filename_jsonl, std::ios::out | std::ios::app);
+            if (!j_data_out) {
+                std::cerr << "failed to open output file\n";
+                return;
+            }
+
+            std::string filename_jsonl_gzip = filename_base + ".jsonl.gz";
+            gzFile gz = gzopen(filename_jsonl_gzip.c_str(), "wb");
+
+            if (!gz) {
+                std::cerr << "failed to open gzip file\n";
+                return;
+            }
+
+            std::string filename_html = filename_base + ".txt";
+            std::ofstream h_data_out(filename_html, std::ios::out | std::ios::app);
+            if (!h_data_out) {
+                std::cerr << "failed to open output file\n";
+                return;
+            }
+
+            AsciiFrame ascii_frame = convert_frame_to_ascii(filename, target_width);
+
+            add_html(ascii_frame);
+
+            const std::string type = "image";
+
+            writer::write_manifest(manifest_out, ascii_frame.image_buffer, type, 0, 1);
+
+            writer::write_cells(j_data_out, ascii_frame.image_buffer, ascii_frame.cells);
+            writer::write_cells_gzip(gz, ascii_frame.image_buffer, ascii_frame.cells);
+            writer::write_html(h_data_out, ascii_frame.html);
+
+            gzclose(gz);
         }
 
         
@@ -195,7 +246,7 @@ namespace rune {
         }
 
 
-        AsciiFrame convert_image_to_ascii(const std::string& filename, int target_width) {
+        AsciiFrame convert_frame_to_ascii(const std::string& filename, int target_width) {
             AsciiFrame ascii_frame;
             ImageBuffer image_buffer = load_image_pixels(filename);
             ImageBuffer resized_image_buffer = resize_image_pixels(image_buffer, target_width);

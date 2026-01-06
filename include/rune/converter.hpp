@@ -39,11 +39,13 @@ namespace rune {
             std::string html = "";
         };
 
-        AsciiFrame convert_image_to_ascii(const std::string& filename, int target_width);
+        AsciiFrame convert_frame_to_ascii(const std::string& filename, int target_width);
 
         void add_html(AsciiFrame& ascii_frame);
 
         void convert_video_to_ascii(const std::string& filename, int target_width, int target_fps, const std::string& output_folder);
+
+        void convert_image_to_ascii(const std::string& filename, int target_width, const std::string& output_folder);
 
         ImageBuffer load_image_pixels(const std::string& filename);
 

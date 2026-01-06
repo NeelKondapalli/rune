@@ -7,18 +7,8 @@
 int main(int argc, char** argv) {
     if (argc < 2) {
         std::cerr << "usage:\n"
-                  << "  rune_cli --image <filename> [--width N] [--out file]\n"
+                  << "  rune_cli --image <filename> [--width N] [--out folder]\n"
                   << "  rune_cli --video <filename> [--width N] [--target-fps N] [--out folder]\n";
-        return 1;
-    }
-
-    std::string mode = argv[1];
-    if (mode == "--image") {
-        mode = "image";
-    } else if (mode == "--video") {
-        mode = "video";
-    } else {
-        std::cerr << "unknown mode: " << argv[1] << "\n";
         return 1;
     }
 
@@ -46,19 +36,11 @@ int main(int argc, char** argv) {
         }
     }
 
-    // if (mode == "image") {
-    //     if (output.empty()) {
-    //         rune::converter::convert_image_to_ascii(input, width, std::cout);
-    //     } else {
-    //         std::ofstream out(output);
-    //         if (!out) {
-    //             std::cerr << "failed to open output file\n";
-    //             return 1;
-    //         }
-    //         rune::converter::convert_image_to_ascii(input, width, out);
-    //     }
-    // }
-    if (mode == "video") {
+    std::string mode = argv[1];
+
+    if (mode == "--image") {
+        rune::converter::convert_image_to_ascii(input, width, output);
+    } else if (mode == "--video") {
         rune::converter::convert_video_to_ascii(input, width, target_fps, output);
     } else {
         std::cerr << "unknown mode: " << mode << "\n";

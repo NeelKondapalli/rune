@@ -161,13 +161,15 @@ namespace rune {
         void write_manifest(
             std::ostream& out, 
             const rune::converter::ImageBuffer& image_buffer, 
-            int fps, 
-            int frame_count
+            const std::string& type = "video",
+            int fps = 0,
+            int frame_count = 1
         ) {
             out << "{\n";
             out << "  \"cols\": " << image_buffer.width << ",\n";
             out << "  \"rows\": " << image_buffer.height / 2 << ",\n";
             out << "  \"channels\": " << image_buffer.channels << ",\n";
+            out << "  \"type\": " << "\"" << type << "\""<< ",\n";
             out << "  \"fps\": " << fps << ",\n";
             out << "  \"frame_count\": " << frame_count << "\n";
             out << "}\n";
