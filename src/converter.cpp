@@ -10,14 +10,18 @@
 
 namespace rune {
     namespace converter {
+        // Converts a video file to ASCII format by extracting frames and processing each one
         void convert_video_to_ascii(const std::string& filename, int target_width, int target_fps, const std::string& output_folder) {
+            // Create temporary directory for extracted video frames
             std::filesystem::path out_dir = "tmp";
             std::filesystem::create_directories(out_dir);
 
+            // Clean out any existing frames from previous runs
             for (auto& entry : std::filesystem::directory_iterator(out_dir)) {
                 std::filesystem::remove_all(entry.path());
             }
 
+            // Use ffmpeg to extract video frames at target FPS
             std::string cmd =
                 "ffmpeg -y -i \"" + filename + "\" "
                 "-vf fps=" + std::to_string(target_fps) + " "
@@ -45,7 +49,7 @@ namespace rune {
             for (const auto& entry : std::filesystem::directory_iterator(out_dir)) {
                 frames.push_back(entry.path());
             }
-            
+
             std::sort(frames.begin(), frames.end());
 
             int frame_count = frames.size();
@@ -80,7 +84,7 @@ namespace rune {
 
             for (auto& frame : frames) {
                 AsciiFrame ascii_frame = convert_frame_to_ascii(frame.string(), target_width);
-                
+
                 add_html(ascii_frame);
 
                 if (!manifest_written) {
@@ -152,21 +156,21 @@ namespace rune {
             gzclose(gz);
         }
 
-        
+
         void add_html(AsciiFrame& ascii_frame) {
             const int width = ascii_frame.image_buffer.width;
             const auto& cells = ascii_frame.cells;
-        
+
             std::string html;
             html.reserve(cells.size() * 6);
-        
+
             char lastGlyph = '\0';
             int lastH = -1, lastS = -1, lastL = -1;
             std::string run;
-        
+
             auto flush_run = [&]() {
                 if (run.empty()) return;
-        
+
                 html += "<span style=\"color:hsl(";
                 html += std::to_string(lastH);
                 html += ",";
@@ -176,27 +180,27 @@ namespace rune {
                 html += "%)\">";
                 html += run;
                 html += "</span>";
-        
+
                 run.clear();
             };
-        
+
             for (size_t i = 0; i < cells.size(); ++i) {
 
 
                 if (i != 0 && i % width == 0) {
-                    flush_run();          
-                    html += "\\n";       
-                    lastGlyph = '\0';    
+                    flush_run();
+                    html += "\\n";
+                    lastGlyph = '\0';
                     lastH = lastS = lastL = -1;
                 }
-        
+
                 const rune::Cell& cell = cells[i];
-        
+
                 char glyph = cell.glyph;
                 int h = static_cast<int>(cell.h);        // degrees
                 int s = static_cast<int>(cell.s * 100);  // %
                 int l = static_cast<int>(cell.l * 100);  // %
-        
+
 
                 if (lastGlyph == '\0') {
                     lastGlyph = glyph;
@@ -206,13 +210,13 @@ namespace rune {
                     run.push_back(glyph);
                     continue;
                 }
-        
-             
+
+
                 if (glyph == lastGlyph && h == lastH && s == lastS && l == lastL) {
                     run.push_back(glyph);
                     continue;
                 }
-        
+
                 flush_run();
                 lastGlyph = glyph;
                 lastH = h;
@@ -220,25 +224,25 @@ namespace rune {
                 lastL = l;
                 run.push_back(glyph);
             }
-        
+
 
             flush_run();
-        
+
             ascii_frame.html = std::move(html);
-        }        
+        }
 
 
         void print_progress(int counter, int frame_count) {
             const int bar_width = 40;
             float progress = static_cast<float>(counter) / frame_count;
             int filled = static_cast<int>(bar_width * progress);
-        
+
             std::cout << "\r[";
             for (int i = 0; i < bar_width; ++i) {
                 if (i < filled) std::cout << "█";
                 else std::cout << "-";
             }
-        
+
             std::cout << "] "
                       << std::setw(3) << static_cast<int>(progress * 100) << "% "
                       << "(" << counter << "/" << frame_count << ")"
@@ -281,7 +285,7 @@ namespace rune {
             buffer.pixels.assign(raw_pixels, raw_pixels + size);
 
             stbi_image_free(raw_pixels);
-        
+
             return buffer;
         }
 
@@ -290,7 +294,7 @@ namespace rune {
             int new_height = image_buffer.height * target_width / image_buffer.width;
 
             resized_image_buffer.pixels.resize(target_width * new_height * image_buffer.channels);
-            
+
             stbir_resize_uint8(
                 image_buffer.pixels.data(),
                 image_buffer.width,
