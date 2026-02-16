@@ -3,12 +3,13 @@
 #include <string>
 
 #include "rune/converter.hpp"
+#include "rune/ramp.hpp"
 
 int main(int argc, char** argv) {
     if (argc < 2) {
         std::cerr << "usage:\n"
-                  << "  rune_cli --image <filename> [--width N] [--out folder]\n"
-                  << "  rune_cli --video <filename> [--width N] [--target-fps N] [--out folder]\n";
+                  << "  rune_cli --image <filename> [--width N] [--ramp simple|dense|blocks|dot|dot2] [--threshold 0-1] [--out folder]\n"
+                  << "  rune_cli --video <filename> [--width N] [--target-fps N] [--ramp simple|dense|blocks|dot|dot2] [--threshold 0-1] [--out folder]\n";
         return 1;
     }
 
@@ -16,6 +17,8 @@ int main(int argc, char** argv) {
     std::string output;
     int width = 120;
     int target_fps = 8;
+    std::string ramp_name = "simple";
+    float threshold = 1.0f;  // Default 1.0 = no filtering (all colors survive)
 
     for (int i = 3; i < argc; ++i) {
         std::string arg = argv[i];
@@ -26,7 +29,13 @@ int main(int argc, char** argv) {
         else if (arg == "--target-fps" && i + 1 < argc) {
             target_fps = std::stoi(argv[++i]);
         }
-
+        else if (arg == "--ramp" && i + 1 < argc) {
+            ramp_name = argv[++i];
+        }
+        else if (arg == "--threshold" && i + 1 < argc) {
+            threshold = std::stof(argv[++i]);
+            threshold = std::clamp(threshold, 0.0f, 1.0f);
+        }
         else if (arg == "--out" && i + 1 < argc) {
             output = argv[++i];
         }
@@ -36,12 +45,29 @@ int main(int argc, char** argv) {
         }
     }
 
+    // Select the ramp based on the ramp_name
+    const rune::Ramp* ramp = &rune::ramps::SIMPLE;
+    if (ramp_name == "simple") {
+        ramp = &rune::ramps::SIMPLE;
+    } else if (ramp_name == "dense") {
+        ramp = &rune::ramps::DENSE;
+    } else if (ramp_name == "blocks") {
+        ramp = &rune::ramps::BLOCKS;
+    } else if (ramp_name == "dot") {
+        ramp = &rune::ramps::DOT;
+    } else if (ramp_name == "dot2") {
+        ramp = &rune::ramps::DOT2;
+    } else {
+        std::cerr << "unknown ramp: " << ramp_name << "\n";
+        return 1;
+    }
+
     std::string mode = argv[1];
 
     if (mode == "--image") {
-        rune::converter::convert_image_to_ascii(input, width, output);
+        rune::converter::convert_image_to_ascii(input, width, output, *ramp, threshold);
     } else if (mode == "--video") {
-        rune::converter::convert_video_to_ascii(input, width, target_fps, output);
+        rune::converter::convert_video_to_ascii(input, width, target_fps, output, *ramp, threshold);
     } else {
         std::cerr << "unknown mode: " << mode << "\n";
         return 1;

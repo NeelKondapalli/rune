@@ -11,7 +11,7 @@
 namespace rune {
     namespace converter {
         // Converts a video file to ASCII format by extracting frames and processing each one
-        void convert_video_to_ascii(const std::string& filename, int target_width, int target_fps, const std::string& output_folder) {
+        void convert_video_to_ascii(const std::string& filename, int target_width, int target_fps, const std::string& output_folder, const rune::Ramp& ramp, float threshold) {
             // Create temporary directory for extracted video frames
             std::filesystem::path out_dir = "tmp";
             std::filesystem::create_directories(out_dir);
@@ -83,7 +83,7 @@ namespace rune {
             }
 
             for (auto& frame : frames) {
-                AsciiFrame ascii_frame = convert_frame_to_ascii(frame.string(), target_width);
+                AsciiFrame ascii_frame = convert_frame_to_ascii(frame.string(), target_width, ramp, threshold);
 
                 add_html(ascii_frame);
 
@@ -105,7 +105,7 @@ namespace rune {
 
         }
 
-        void convert_image_to_ascii(const std::string& filename, int target_width, const std::string& output_folder) {
+        void convert_image_to_ascii(const std::string& filename, int target_width, const std::string& output_folder, const rune::Ramp& ramp, float threshold) {
             std::filesystem::create_directories(output_folder);
             for (auto& entry : std::filesystem::directory_iterator(output_folder)) {
                 std::filesystem::remove_all(entry.path());
@@ -141,7 +141,7 @@ namespace rune {
                 return;
             }
 
-            AsciiFrame ascii_frame = convert_frame_to_ascii(filename, target_width);
+            AsciiFrame ascii_frame = convert_frame_to_ascii(filename, target_width, ramp, threshold);
 
             add_html(ascii_frame);
 
@@ -164,7 +164,7 @@ namespace rune {
             std::string html;
             html.reserve(cells.size() * 6);
 
-            char lastGlyph = '\0';
+            std::string lastGlyph = "";
             int lastH = -1, lastS = -1, lastL = -1;
             std::string run;
 
@@ -190,30 +190,30 @@ namespace rune {
                 if (i != 0 && i % width == 0) {
                     flush_run();
                     html += "\\n";
-                    lastGlyph = '\0';
+                    lastGlyph = "";
                     lastH = lastS = lastL = -1;
                 }
 
                 const rune::Cell& cell = cells[i];
 
-                char glyph = cell.glyph;
+                const std::string& glyph = cell.glyph;
                 int h = static_cast<int>(cell.h);        // degrees
                 int s = static_cast<int>(cell.s * 100);  // %
                 int l = static_cast<int>(cell.l * 100);  // %
 
 
-                if (lastGlyph == '\0') {
+                if (lastGlyph.empty()) {
                     lastGlyph = glyph;
                     lastH = h;
                     lastS = s;
                     lastL = l;
-                    run.push_back(glyph);
+                    run += glyph;
                     continue;
                 }
 
 
                 if (glyph == lastGlyph && h == lastH && s == lastS && l == lastL) {
-                    run.push_back(glyph);
+                    run += glyph;
                     continue;
                 }
 
@@ -222,7 +222,7 @@ namespace rune {
                 lastH = h;
                 lastS = s;
                 lastL = l;
-                run.push_back(glyph);
+                run += glyph;
             }
 
 
@@ -250,11 +250,11 @@ namespace rune {
         }
 
 
-        AsciiFrame convert_frame_to_ascii(const std::string& filename, int target_width) {
+        AsciiFrame convert_frame_to_ascii(const std::string& filename, int target_width, const rune::Ramp& ramp, float threshold) {
             AsciiFrame ascii_frame;
             ImageBuffer image_buffer = load_image_pixels(filename);
             ImageBuffer resized_image_buffer = resize_image_pixels(image_buffer, target_width);
-            std::vector<rune::Cell> cells = pixels_to_cells(resized_image_buffer);
+            std::vector<rune::Cell> cells = pixels_to_cells(resized_image_buffer, ramp, threshold);
             ascii_frame.image_buffer = resized_image_buffer;
             ascii_frame.cells = cells;
             return ascii_frame;
@@ -312,9 +312,31 @@ namespace rune {
             return resized_image_buffer;
         }
 
-        std::vector<rune::Cell> pixels_to_cells(const ImageBuffer& image_buffer) {
+        std::vector<rune::Cell> pixels_to_cells(const ImageBuffer& image_buffer, const rune::Ramp& ramp, float threshold) {
 
             std::vector<rune::Cell> cells;
+
+            // Parse UTF-8 characters from ramp into a vector
+            std::vector<std::string> ramp_chars;
+            size_t i = 0;
+            while (i < ramp.chars.size()) {
+                unsigned char c = ramp.chars[i];
+                int char_len = 1;
+                
+                // Determine UTF-8 character length
+                if ((c & 0x80) == 0) {
+                    char_len = 1; // ASCII
+                } else if ((c & 0xE0) == 0xC0) {
+                    char_len = 2; // 2-byte UTF-8
+                } else if ((c & 0xF0) == 0xE0) {
+                    char_len = 3; // 3-byte UTF-8
+                } else if ((c & 0xF8) == 0xF0) {
+                    char_len = 4; // 4-byte UTF-8
+                }
+                
+                ramp_chars.push_back(std::string(ramp.chars.substr(i, char_len)));
+                i += char_len;
+            }
 
             for (int y = 0; y < image_buffer.height; y+=2) {
                 for (int x = 0; x < image_buffer.width; x++) {
@@ -326,14 +348,17 @@ namespace rune {
 
                     HSL hsl = rgb_to_hsl(r, g, b);
 
-                    float t = std::clamp(hsl.l, 0.0f, 1.0f);
+                    // Apply threshold: if lightness > threshold, set to white (1.0), else keep original
+                    float adjusted_l = (hsl.l > threshold) ? 1.0f : hsl.l;
 
-                    int ascii_index = static_cast<int>(t * (rune::ramps::SIMPLE.chars.size() - 1));
+                    float t = std::clamp(adjusted_l, 0.0f, 1.0f);
 
-                    cell.glyph = rune::ramps::SIMPLE.chars[ascii_index];
+                    int ascii_index = static_cast<int>(std::round(t * (ramp_chars.size() - 1)));
+
+                    cell.glyph = ramp_chars[ascii_index];
                     cell.h = hsl.h; // degrees
                     cell.s = hsl.s; // ratio
-                    cell.l = hsl.l; // ratio
+                    cell.l = adjusted_l; // ratio (with threshold applied)
                     cells.push_back(cell);
                 }
             }

@@ -1,6 +1,9 @@
 #include "rune/cell.hpp"
 #include "rune/converter.hpp"
 #include <ostream>
+#include <iomanip>
+#include <cstdint>
+#include <sstream>
 
 namespace rune {
     namespace writer {
@@ -68,26 +71,44 @@ namespace rune {
 
                 out << R"({"g":")";
 
-                // Escape special JSON characters
-                if (c.glyph == '\\') {
+                // Escape special JSON characters and encode UTF-8 as \uXXXX
+                if (c.glyph == "\\") {
                     out << "\\\\";
-                } else if (c.glyph == '"') {
+                } else if (c.glyph == "\"") {
                     out << "\\\"";
-                } else if (c.glyph == '\b') {
+                } else if (c.glyph == "\b") {
                     out << "\\b";
-                } else if (c.glyph == '\f') {
+                } else if (c.glyph == "\f") {
                     out << "\\f";
-                } else if (c.glyph == '\n') {
+                } else if (c.glyph == "\n") {
                     out << "\\n";
-                } else if (c.glyph == '\r') {
+                } else if (c.glyph == "\r") {
                     out << "\\r";
-                } else if (c.glyph == '\t') {
+                } else if (c.glyph == "\t") {
                     out << "\\t";
-                } else {
+                } else if (c.glyph.size() == 1 && static_cast<unsigned char>(c.glyph[0]) < 128) {
+                    // ASCII character - output directly
                     out << c.glyph;
+                } else {
+                    // Multi-byte UTF-8 - convert to Unicode code point and escape as \uXXXX
+                    const unsigned char* bytes = reinterpret_cast<const unsigned char*>(c.glyph.data());
+                    uint32_t codepoint = 0;
+                    
+                    if ((bytes[0] & 0x80) == 0) {
+                        codepoint = bytes[0];
+                    } else if ((bytes[0] & 0xE0) == 0xC0 && c.glyph.size() >= 2) {
+                        codepoint = ((bytes[0] & 0x1F) << 6) | (bytes[1] & 0x3F);
+                    } else if ((bytes[0] & 0xF0) == 0xE0 && c.glyph.size() >= 3) {
+                        codepoint = ((bytes[0] & 0x0F) << 12) | ((bytes[1] & 0x3F) << 6) | (bytes[2] & 0x3F);
+                    } else if ((bytes[0] & 0xF8) == 0xF0 && c.glyph.size() >= 4) {
+                        codepoint = ((bytes[0] & 0x07) << 18) | ((bytes[1] & 0x3F) << 12) | ((bytes[2] & 0x3F) << 6) | (bytes[3] & 0x3F);
+                    }
+                    
+                    // Output as \uXXXX
+                    out << "\\u" << std::hex << std::setfill('0') << std::setw(4) << codepoint << std::dec;
                 }
 
-                out << R"(","h":)" << int(static_cast<uint8_t>(c.h * 255.0f / 360.0f)) << R"(,"s":)" << int(static_cast<uint8_t>(c.s * 255.0f)) << R"(,"l":)" << int(static_cast<uint8_t>(c.l * 255.0f)) << R"(})";
+                out << R"(","h":)" << static_cast<int>(c.h) << R"(,"s":)" << static_cast<int>(c.s * 100.0f) << R"(,"l":)" << static_cast<int>(c.l * 100.0f) << R"(})";
 
                 if (i + 1 < cells.size()) {
                     out << ",";
@@ -122,31 +143,51 @@ namespace rune {
 
                 write(R"({"g":")");
 
-                // Escape special JSON characters
-                if (c.glyph == '\\') {
+                // Escape special JSON characters and encode UTF-8 as \uXXXX
+                if (c.glyph == "\\") {
                     write("\\\\");
-                } else if (c.glyph == '"') {
+                } else if (c.glyph == "\"") {
                     write("\\\"");
-                } else if (c.glyph == '\b') {
+                } else if (c.glyph == "\b") {
                     write("\\b");
-                } else if (c.glyph == '\f') {
+                } else if (c.glyph == "\f") {
                     write("\\f");
-                } else if (c.glyph == '\n') {
+                } else if (c.glyph == "\n") {
                     write("\\n");
-                } else if (c.glyph == '\r') {
+                } else if (c.glyph == "\r") {
                     write("\\r");
-                } else if (c.glyph == '\t') {
+                } else if (c.glyph == "\t") {
                     write("\\t");
+                } else if (c.glyph.size() == 1 && static_cast<unsigned char>(c.glyph[0]) < 128) {
+                    // ASCII character - output directly
+                    write(c.glyph);
                 } else {
-                    gzwrite(gz, &c.glyph, 1);
+                    // Multi-byte UTF-8 - convert to Unicode code point and escape as \uXXXX
+                    const unsigned char* bytes = reinterpret_cast<const unsigned char*>(c.glyph.data());
+                    uint32_t codepoint = 0;
+                    
+                    if ((bytes[0] & 0x80) == 0) {
+                        codepoint = bytes[0];
+                    } else if ((bytes[0] & 0xE0) == 0xC0 && c.glyph.size() >= 2) {
+                        codepoint = ((bytes[0] & 0x1F) << 6) | (bytes[1] & 0x3F);
+                    } else if ((bytes[0] & 0xF0) == 0xE0 && c.glyph.size() >= 3) {
+                        codepoint = ((bytes[0] & 0x0F) << 12) | ((bytes[1] & 0x3F) << 6) | (bytes[2] & 0x3F);
+                    } else if ((bytes[0] & 0xF8) == 0xF0 && c.glyph.size() >= 4) {
+                        codepoint = ((bytes[0] & 0x07) << 18) | ((bytes[1] & 0x3F) << 12) | ((bytes[2] & 0x3F) << 6) | (bytes[3] & 0x3F);
+                    }
+                    
+                    // Output as \uXXXX
+                    std::stringstream ss;
+                    ss << "\\u" << std::hex << std::setfill('0') << std::setw(4) << codepoint;
+                    write(ss.str());
                 }
 
                 write(R"(","h":)");
-                write(std::to_string(static_cast<uint8_t>(c.h * 255.0f / 360.0f))); // h is degress -> find ratio / 360 and norm to 255
+                write(std::to_string(static_cast<int>(c.h))); // h is degrees (0-360)
                 write(R"(,"s":)");
-                write(std::to_string(static_cast<uint8_t>(c.s * 255.0f))); // s is a ratio -> norm to 255
+                write(std::to_string(static_cast<int>(c.s * 100.0f))); // s is ratio -> percentage (0-100)
                 write(R"(,"l":)");
-                write(std::to_string(static_cast<uint8_t>(c.l * 255.0f))); // l is a ratio -> norm to 255
+                write(std::to_string(static_cast<int>(c.l * 100.0f))); // l is ratio -> percentage (0-100)
                 write("}");
 
                 if (i + 1 < cells.size()) {
