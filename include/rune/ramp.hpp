@@ -14,6 +14,7 @@ struct Ramp {
         constexpr Ramp BLOCKS   { " ░▒▓█" };
         constexpr Ramp DOT      { "█•" };
         constexpr Ramp DOT2     { "█" };
+        constexpr Ramp LINE     { "▃" };
 
     } // namespace ramps
 } // namespace rune

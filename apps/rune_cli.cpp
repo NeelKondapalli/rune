@@ -1,3 +1,4 @@
+#include <cstddef>
 #include <iostream>
 #include <fstream>
 #include <string>
@@ -8,8 +9,8 @@
 int main(int argc, char** argv) {
     if (argc < 2) {
         std::cerr << "usage:\n"
-                  << "  rune_cli --image <filename> [--width N] [--ramp simple|dense|blocks|dot|dot2] [--threshold 0-1] [--out folder]\n"
-                  << "  rune_cli --video <filename> [--width N] [--target-fps N] [--ramp simple|dense|blocks|dot|dot2] [--threshold 0-1] [--out folder]\n";
+                  << "  rune_cli --image <filename> [--width N] [--ramp simple|dense|blocks|dot|dot2] [--custom-ramp <string>] [--threshold 0-1] [--out folder]\n"
+                  << "  rune_cli --video <filename> [--width N] [--target-fps N] [--ramp simple|dense|blocks|dot|dot2] [--custom-ramp <filename>] [--threshold 0-1] [--out folder]\n";
         return 1;
     }
 
@@ -18,6 +19,8 @@ int main(int argc, char** argv) {
     int width = 120;
     int target_fps = 8;
     std::string ramp_name = "simple";
+    rune::Ramp custom_ramp_obj;
+    std::string custom_ramp;
     float threshold = 1.0f;  // Default 1.0 = no filtering (all colors survive)
 
     for (int i = 3; i < argc; ++i) {
@@ -31,6 +34,9 @@ int main(int argc, char** argv) {
         }
         else if (arg == "--ramp" && i + 1 < argc) {
             ramp_name = argv[++i];
+        }
+        else if (arg == "--custom-ramp" && i + 1 < argc) {
+            custom_ramp = argv[++i];
         }
         else if (arg == "--threshold" && i + 1 < argc) {
             threshold = std::stof(argv[++i]);
@@ -47,7 +53,10 @@ int main(int argc, char** argv) {
 
     // Select the ramp based on the ramp_name
     const rune::Ramp* ramp = &rune::ramps::SIMPLE;
-    if (ramp_name == "simple") {
+    if (!custom_ramp.empty()) {
+        custom_ramp_obj = rune::Ramp {custom_ramp};
+        ramp = &custom_ramp_obj;
+    } else if (ramp_name == "simple") {
         ramp = &rune::ramps::SIMPLE;
     } else if (ramp_name == "dense") {
         ramp = &rune::ramps::DENSE;
@@ -57,6 +66,8 @@ int main(int argc, char** argv) {
         ramp = &rune::ramps::DOT;
     } else if (ramp_name == "dot2") {
         ramp = &rune::ramps::DOT2;
+    } else if (ramp_name == "line") {
+        ramp = &rune::ramps::LINE;
     } else {
         std::cerr << "unknown ramp: " << ramp_name << "\n";
         return 1;
