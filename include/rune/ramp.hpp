@@ -13,8 +13,7 @@ struct Ramp {
         constexpr Ramp DENSE    { " .'`^,:;Il!i><~+_-?][}{1)(|\\/tfjrxnuvczXYUJCLQ0OZmwqpdbkhao*#MW&8%B@$" };
         constexpr Ramp BLOCKS   { " ░▒▓█" };
         constexpr Ramp DOT      { "█•" };
-        constexpr Ramp DOT2     { "█" };
-        constexpr Ramp LINE     { "▃" };
+        constexpr Ramp LINE     { "▃▃▃   " };
 
     } // namespace ramps
 } // namespace rune

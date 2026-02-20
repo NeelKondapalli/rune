@@ -64,8 +64,6 @@ int main(int argc, char** argv) {
         ramp = &rune::ramps::BLOCKS;
     } else if (ramp_name == "dot") {
         ramp = &rune::ramps::DOT;
-    } else if (ramp_name == "dot2") {
-        ramp = &rune::ramps::DOT2;
     } else if (ramp_name == "line") {
         ramp = &rune::ramps::LINE;
     } else {
