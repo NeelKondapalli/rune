@@ -1,0 +1,43 @@
+{{ $framesPath := .Get "path" }}
+{{ $preferGzip := default true (.Get "gzip") }}
+{{ $invertMode := default "0" (.Get "invert") }}
+{{ $fontSize := .Get "fontSize" }}
+{{ $align := .Get "align" }}
+{{ $height := .Get "height" }}
+{{ $maxFps := .Get "maxFps" }}
+{{ $id := printf "ascii-video-%s" ($framesPath | anchorize) }}
+
+<div class="ascii-video-container"{{ if $align }} style="text-align: {{ $align }};"{{ end }}>
+    <pre class="ascii-surface{{ if eq $invertMode "1" }} ascii-invert-on-light{{ else if eq $invertMode "2" }} ascii-invert-on-dark{{ end }}" id="{{ $id }}" style="opacity: 0; {{ if $height }}height: {{ $height }}; min-height: {{ $height }};{{ else }}min-height: 33em;{{ end }} transition: opacity 0.5s ease-in;{{ if $align }} display: inline-block; text-align: left;{{ end }}{{ if $fontSize }} font-size: {{ $fontSize }};{{ end }} overflow: hidden;"></pre>
+</div>
+
+<script type="module">
+    console.log('ASCII video shortcode loading...');
+
+    import { createAsciiPlayerJsonl } from '/js/asciiPlayerJsonl.js';
+
+    const container = document.getElementById('{{ $id }}');
+    console.log('Container found:', container);
+
+    if (container) {
+        console.log('Starting player with path: {{ $framesPath }}');
+        const player = createAsciiPlayerJsonl({
+            container: container,
+            framesPath: '{{ $framesPath }}',
+            preferGzip: {{ $preferGzip }},
+            {{ if $maxFps }}maxFps: {{ $maxFps }},{{ end }}
+            onReady: () => {
+                console.log('Player ready!');
+                container.style.opacity = '1';
+            }
+        });
+
+        player.start()
+            .then(() => console.log('Player started successfully'))
+            .catch(err => {
+                console.error('Failed to start ASCII player:', err);
+            });
+    } else {
+        console.error('Container not found: {{ $id }}');
+    }
+</script>
